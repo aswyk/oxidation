@@ -2,3 +2,9 @@
 name = "oxidation"
 version = "0.1.0"
 authors = ["Andre Schalkwyk <avs.aswyk@gmail.com>"]
+
+[dependencies]
+
+[lib]
+name="oxidation"
+path="src/lib.rs"

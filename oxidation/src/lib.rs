@@ -22,6 +22,10 @@ pub mod vm;
 pub mod gc;
 pub mod object;
 
+
+//pub use vm::*;
+//pub use opcode::*;
+
 #[test]
 fn it_works() {
 }
