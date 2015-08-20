@@ -39,25 +39,18 @@ impl FileReader {
     })
   }
 
-  fn bump(&mut self) -> Result<char> {
+  // Advance the lexer state ahead one character
+  fn bump(&mut self) -> Result<()> {
     if self.line_pos >= self.source_line.len() - 1 {
-      self.source_line.clear();
-      let r = self.source_file.read_line(&mut self.source_line);
-      match r {
-        Ok(0) => return Err(Error::new(ErrorKind::Other, "EOF")),
-        Err(e) => return Err(e),
-        _ => ()
-      }
-      self.line_pos = 0;
-      self.line_number += 1;
-      Ok(self.source_line[self.line_pos..].chars().next().unwrap())
+      self.bump_line()
     } else {
-      let c = self.source_line[self.line_pos..].chars().next().unwrap();
+      let c = self.current();
       self.line_pos += c.len_utf8();
-      Ok(c)
+      Ok(())
     }
   }
 
+  // Advance the lexer state ahead one line
   fn bump_line(&mut self) -> Result<()> {
     self.source_line.clear();
     let r = self.source_file.read_line(&mut self.source_line);
@@ -71,10 +64,12 @@ impl FileReader {
     Ok(())
   }
 
+  // Get the character at the current lexer position
   fn current(&self) -> char {
     self.source_line[self.line_pos..].chars().next().unwrap()
   }
 
+  // Skip n equals signs in a long string delimiter. Return n.
   fn skip_sep(&mut self) -> Result<i8> {
     let mut n = 0;
     let s = self.current();
@@ -97,6 +92,7 @@ impl FileReader {
     }
   }
 
+  // Read a long string of the form [[str]], [=[str]=], ...
   fn read_long_string(&mut self, sep : i8) -> Result<String> {
     let mut s = String::new();
 
@@ -124,6 +120,7 @@ impl FileReader {
     }
   }
 
+  // Read a normal form string in quotes
   fn read_string(&mut self) -> Result<String> {
     let del = &self.current();
     let mut s = String::new();
@@ -172,6 +169,7 @@ impl FileReader {
     Ok(s)
   }
 
+  // Read a number... might be malformed...
   fn read_number(&mut self) -> Result<String> {
     let mut s = String::new();
 
@@ -201,6 +199,7 @@ impl FileReader {
     Ok(s)
   }
 
+  // Read a keyword or identifier
   fn read_name(&mut self) -> Result<Token> {
     let mut s = String::new();
 
@@ -235,6 +234,7 @@ impl FileReader {
     }
   }
 
+  // Read an operator or the "operator or equal" form
   fn or_eq(&mut self, base : Token, eq : Token) -> Result<Token> {
     try!(self.bump());
     if self.current() != '=' {
@@ -247,6 +247,7 @@ impl FileReader {
 }
 
 impl Reader for FileReader {
+  /// Get the next token.  Advances the lexer state.
   fn next_token(&mut self) -> Result<Token> {
     loop {
       match self.current() {
@@ -266,7 +267,6 @@ impl Reader for FileReader {
               }
             } else {
               // Line comment
-              println!("Found comment");
               try!(self.bump_line());
               continue;
             }
@@ -279,12 +279,14 @@ impl Reader for FileReader {
             let s = try!(self.read_long_string(sep));
             return Ok(Token::String(s));
           } else if sep == -1 {
+            // Just a single [
             return Ok(Token::LSquare);
           } else {
             self.error("invalid string delimiter");
           }
         },
 
+        // Comparison operators
         '=' => return self.or_eq(Token::Assign, Token::Eq),
         '<' => return self.or_eq(Token::Lt, Token::Leq),
         '>' => return self.or_eq(Token::Gt, Token::Geq),
@@ -312,6 +314,7 @@ impl Reader for FileReader {
           }
         },
 
+        // The easy ones.  Unambiguous single-char tokens
         '+' => { try!(self.bump()); return Ok(Token::Plus) },
         '*' => { try!(self.bump()); return Ok(Token::Times) },
         '/' => { try!(self.bump()); return Ok(Token::Divide) },
@@ -329,6 +332,7 @@ impl Reader for FileReader {
 
         _ => {
           if self.current().is_whitespace() {
+            // Skip white space
             try!(self.bump());
             continue;
           } else if self.current().is_digit(10) {
@@ -344,6 +348,7 @@ impl Reader for FileReader {
     }
   }
 
+  /// Report a lexer error
   fn error(&self, s : &str) -> ! {
     panic!("lexical error: {}:{}: {}", self.file_name, self.line_number, s)
   }
