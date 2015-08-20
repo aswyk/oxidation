@@ -10,6 +10,7 @@ use parser::tokens::Token;
 
 pub trait Reader {
   fn next_token(&mut self) -> Result<Token>;
+  fn peek_token(&mut self) -> Result<Token>;
   fn error(&self, &str) -> !;
 }
 
@@ -20,11 +21,12 @@ pub struct FileReader {
   source_line     : String,
   line_pos        : usize,
   source_file     : BufReader<File>,
+  peek_tok        : Option<Token>
 }
 
 impl FileReader {
   pub fn new(filename : &str) -> Result<FileReader> {
-    let mut f = try!(File::open(Path::new(filename)));
+    let f = try!(File::open(Path::new(filename)));
     let mut b = BufReader::new(f);
     let mut s = String::new();
     try!(b.read_line(&mut s));
@@ -36,6 +38,7 @@ impl FileReader {
       source_line: s,
       line_pos: 0,
       source_file: b,
+      peek_tok: None
     })
   }
 
@@ -249,6 +252,14 @@ impl FileReader {
 impl Reader for FileReader {
   /// Get the next token.  Advances the lexer state.
   fn next_token(&mut self) -> Result<Token> {
+    match self.peek_tok.clone() {
+      Some(tok) => {
+        self.peek_tok = None;
+        return Ok(tok);
+      },
+      None => ()
+    }
+
     loop {
       match self.current() {
         '-' => {
@@ -344,6 +355,17 @@ impl Reader for FileReader {
             self.error("unexpected character");
           }
         }
+      }
+    }
+  }
+
+  fn peek_token(&mut self) -> Result<Token> {
+    match self.peek_tok.clone() {
+      Some(tok) => Ok(tok),
+      None => {
+        let tok = try!(self.next_token());
+        self.peek_tok = Some(tok.clone());
+        Ok(tok)
       }
     }
   }

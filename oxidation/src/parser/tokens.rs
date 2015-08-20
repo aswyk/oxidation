@@ -1,5 +1,5 @@
 
-#[derive(PartialEq,Eq,Debug)]
+#[derive(Clone,PartialEq,Eq,Debug)]
 pub enum Token {
   And,
   Break,

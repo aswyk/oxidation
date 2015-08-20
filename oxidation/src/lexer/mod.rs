@@ -5,16 +5,12 @@
 //! # Examples
 //!     TODO: ...
 
-use parser::tokens::Token;
-use lexer::reader::Reader;
-use lexer::reader::FileReader;
 
 pub mod reader;
 
 
 #[cfg(test)]
 mod tests {
-  use super::*;
   use std::error::Error;
   use lexer::reader::Reader;
   use lexer::reader::FileReader;
