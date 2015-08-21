@@ -15,11 +15,10 @@ mod tests {
   use lexer::reader::Reader;
   use lexer::reader::FileReader;
 
-  #[test]
-  fn lex() {
-    let mut f = FileReader::new("hello.lua")
+  fn lex(filename : &str) {
+    let mut f = FileReader::new(filename)
                 .ok()
-                .expect("Unable to open file for test");
+                .expect(&format!("Unable to open {} for test", filename)[0..]);
 
     loop {
       let tok = f.next_token();
@@ -33,5 +32,15 @@ mod tests {
         }
       }
     }
+  }
+
+  #[test]
+  fn hello() {
+    lex("hello.lua")
+  }
+
+  #[test]
+  fn life() {
+    lex("life.lua")
   }
 }
