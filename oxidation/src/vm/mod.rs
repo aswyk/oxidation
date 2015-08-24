@@ -3,7 +3,7 @@
 //! * Virtual Machine - Runs bytecode
 //!
 //! # Examples
-//!     TODO: ...
+//!
 
 
 pub mod opcode;

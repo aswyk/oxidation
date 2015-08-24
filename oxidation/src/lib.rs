@@ -10,10 +10,10 @@
 //! * Virtual Machine - Runs bytecode
 //! * Object - Implimentation of internal data layout.
 //! * Garbage Collector - Collects Garbage, DUH.
-//! * TODO: std - Standard library functions available in the scripting language.
+//! * : std - Standard library functions available in the scripting language.
 //!
 //! # How to use the core library
-//!     TODO: ...
+//!
 
 
 pub mod lexer;

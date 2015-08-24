@@ -3,7 +3,7 @@
 //! # Lexer - Transforms source text into a token stream
 //!
 //! # Examples
-//!     TODO: ...
+//! 
 
 
 pub mod reader;
@@ -28,7 +28,7 @@ mod tests {
           match e.description() {
             "EOF" => break,
             err => panic!("{}", err)
-          } 
+          }
         }
       }
     }

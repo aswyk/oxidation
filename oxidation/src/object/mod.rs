@@ -3,4 +3,4 @@
 //! # Object - Transforms source text into a token stream
 //!
 //! # Examples
-//!     TODO: ...
+//!
