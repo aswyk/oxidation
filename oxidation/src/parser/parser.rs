@@ -1,6 +1,11 @@
-
+#![allow(dead_code)]
+#![allow(non_camel_case_types)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
+#![allow(non_snake_case)]
 /*
-chunk ::= {stat [`;´]} [laststat [`;´]]
+    chunk ::= {stat [`;´]} [laststat [`;´]]
 
 	block ::= chunk
 
@@ -39,20 +44,184 @@ chunk ::= {stat [`;´]} [laststat [`;´]]
 		 and | or
 	unop ::= `-´ | not | `#´
 */
-
+use std::error::Error;
+use object::*;
 use lexer::reader::*;
+use super::tokens::Token;
 
-struct Block {
-    lexer : FileReader,
+///
+///
+/// Rules for Statements
+///
+///
+
+fn block_follow(token: &Token) -> bool
+{
+    match *token {
+        Token::Else => { return true; }
+        Token::Elseif => {return true; }
+        Token::End => { return true; }
+        Token::Until => { return true; }
+        _ => { return false;}
+    }
 }
 
-impl Block {
-    pub fn new(lex : FileReader) -> Block {
-        Block { lexer : lex }
+
+
+pub struct Parser {
+    lexer : FileReader,
+    currentToken : Option<Token>,
+}
+
+pub struct TVM;
+
+impl Parser {
+    pub fn new(mut lex : FileReader) -> Option<Parser> {
+
+        let mut tok = lex.peek_token();
+        let mut p = Parser { lexer : lex, currentToken = }
+        //let mut t = Token::If;
+
+        //Some(Parser { lexer : lex , currentToken : t})
+
+
+        match tok {
+            Ok(t) =>
+            {
+                //self.currentToken = t.clone();
+
+                Some(Parser {
+                    lexer : lex,
+                    currentToken : t.clone(),
+                })
+            },
+            Err(e) => {
+                match e.description() {
+                    "EOF" => { None },
+                    err => { panic!("{}", err); None },
+                }
+            }
+        }
+
+        None
         //try!(b.read_line(&mut s));
     }
 
-    pub fn stat(&mut self){} //::=  varlist `=´ explist |
+    pub fn loadPeekToken(&mut self) -> bool {
+
+        let tok = self.lexer.peek_token();
+        match tok {
+            Ok(t) =>
+            {
+                self.currentToken = t.clone();
+                return true;
+            },
+            Err(e) => {
+                match e.description() {
+                    "EOF" =>
+                    {
+                        self.currentToken = Token::EOF;
+                        return true;
+                    },
+                    err => panic!("{}", err)
+                }
+            }
+        }
+        return false;
+    }
+
+    pub fn loadNextToken(&mut self) -> bool {
+
+        let tok = self.lexer.next_token();
+        match tok {
+            Ok(t) =>
+            {
+                self.currentToken = t.clone();
+                return true;
+            },
+            Err(e) => {
+                match e.description() {
+                    "EOF" =>
+                    {
+                        self.currentToken = Token::EOF;
+                        return true;
+                    },
+                    err => panic!("{}", err)
+                }
+            }
+        }
+        return false;
+    }
+    // main parser entry point
+    //Proto *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff, const char *name) {
+    pub fn parse(&mut self, vm: Option<TVM> ) -> i32 {
+
+        println!("Starting Parsing");
+
+        /*
+        struct LexState lexstate;
+        struct FuncState funcstate;
+        lexstate.buff = buff;
+        luaX_setinput(L, &lexstate, z, luaS_new(L, name));
+        open_func(&lexstate, &funcstate);
+        funcstate.f->is_vararg = VARARG_ISVARARG;  /* main func. is always vararg */
+        luaX_next(&lexstate);  /* read first token */
+        chunk(&lexstate);
+        check(&lexstate, TK_EOS);
+        close_func(&lexstate);
+        lua_assert(funcstate.prev == NULL);
+        lua_assert(funcstate.f->nups == 0);
+        lua_assert(lexstate.fs == NULL);
+        return funcstate.f;
+    */
+
+        println!("Completed Parsing");
+
+        return 3;
+    }
+
+    pub fn chunk(&mut self) {
+        /* chunk -> { stat [`;'] } */
+        let mut islast = false;
+        //enterlevel(self); // code gen
+        //while !islast && block_follow(self.getNextToken()) {
+        while !islast && block_follow(&self.currentToken) {
+            islast = self.statement();
+            //testnext(ls, ';');
+            //lua_assert(ls->fs->f->maxstacksize >= ls->fs->freereg && ls->fs->freereg >= ls->fs->nactvar);
+            //ls->fs->freereg = ls->fs->nactvar;  /* free registers */
+        }
+        //leavelevel(ls);   // code gen
+    }
+
+    pub fn block(&mut self) {
+        /* block -> chunk */
+        //FuncState *fs = ls->fs;
+        //BlockCnt bl;
+        //enterblock(fs, &bl, 0);
+        self.chunk();
+        //lua_assert(bl.breaklist == NO_JUMP);
+        //leaveblock(fs);
+    }
+
+    pub fn statement(&mut self) -> bool{
+        let line = self.lexer.line_number;
+
+        match self.lexer.peek_token() {
+            Ok(t) => {
+                match t {
+                    _ => { return false; }
+                }
+            },
+            Err(e) => {
+              match e.description() {
+                "EOF" => { return false; },
+                err => { panic!("{}", err); }
+              }
+          },
+      }
+  }
+        //::=  varlist `=´ explist |
 		 //functioncall |
 		 //do block end |
 		 //while exp do block end |
@@ -63,6 +232,10 @@ impl Block {
 		 //function funcname funcbody |
 		 //local function Name funcbody |
 		 //local namelist [`=´ explist]
+    pub fn ifstat(&mut self, line: u32) {
+
+    }
+
     pub fn laststat(&mut self){} //::= return [explist] | break
 	pub fn funcname(&mut self){} //::= Name {`.´ Name} [`:´ Name]
 	pub fn varlist(&mut self){} //::= var {`,´ var}
@@ -87,6 +260,8 @@ impl Block {
 	pub fn unop(&mut self){} //::= `-´ | not | `#´
 }
 
+/*
 pub fn processToken(block : &Block){
-    
+
 }
+*/

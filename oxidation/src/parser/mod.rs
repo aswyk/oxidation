@@ -5,21 +5,35 @@
 //! # Examples
 //!
 
-pub mod tokens;
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
 
+pub mod tokens;
+pub mod parser;
 
 #[cfg(test)]
 mod tests {
   use std::error::Error;
   use lexer::reader::Reader;
   use lexer::reader::FileReader;
-  //use parser:
+  use parser::parser::Parser;
 
-  /*fn lex(filename : &str) {
+  fn parse(filename : &str) {
     let mut f = FileReader::new(filename)
                 .ok()
                 .expect(&format!("Unable to open {} for test", filename)[0..]);
 
+    //let mut parser = Parser::new(f);
+
+    //match parser {
+    match Parser::new(f) {
+        Some(mut p) => { p.parse(None); },
+        None => { println!("ERROR :  Return DEBUG info."); }
+    }
+    //parser.parse(None);
+
+    /*
     loop {
       let tok = f.next_token();
       match tok {
@@ -31,11 +45,11 @@ mod tests {
           }
         }
       }
-    }
-  }*/
+    }*/
+  }
 
   #[test]
-  fn hello() {
-    //lex("hello.lua")
+  fn parser() {
+    parse("hello.lua")
   }
 }
