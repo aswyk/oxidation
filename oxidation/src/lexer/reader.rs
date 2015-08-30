@@ -17,7 +17,7 @@ pub trait Reader {
 pub struct FileReader {
   pub file_name   : String,
   pub line_number : u32,
-  
+
   source_line     : String,
   line_pos        : usize,
   source_file     : BufReader<File>,
@@ -105,7 +105,7 @@ impl FileReader {
       // so that it will not be included in the string
       try!(self.bump_line());
     }
-    
+
     loop {
       match self.current() {
         ']' => {
@@ -128,7 +128,7 @@ impl FileReader {
     let del = &self.current();
     let mut s = String::new();
     try!(self.bump());   // skip leading del
-    
+
     while self.current() != *del {
       match self.current() {
         '\n' | '\r' => self.error("unfinished string"),
@@ -375,5 +375,3 @@ impl Reader for FileReader {
     panic!("lexical error: {}:{}: {}", self.file_name, self.line_number, s)
   }
 }
-
-
