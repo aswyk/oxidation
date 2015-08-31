@@ -79,31 +79,20 @@ impl Parser {
     pub fn new(mut lex : FileReader) -> Option<Parser> {
 
         let mut tok = lex.peek_token();
-        let mut p = Parser { lexer : lex, currentToken = }
-        //let mut t = Token::If;
-
-        //Some(Parser { lexer : lex , currentToken : t})
-
 
         match tok {
-            Ok(t) =>
-            {
-                //self.currentToken = t.clone();
-
-                Some(Parser {
-                    lexer : lex,
-                    currentToken : t.clone(),
-                })
+            Ok(mut t) => {
+                return Some( Parser {
+                                lexer : lex,
+                                currentToken : Some(t.clone())
+                                }
+                            );
             },
             Err(e) => {
-                match e.description() {
-                    "EOF" => { None },
-                    err => { panic!("{}", err); None },
-                }
+                return None;
             }
         }
 
-        None
         //try!(b.read_line(&mut s));
     }
 
@@ -113,14 +102,14 @@ impl Parser {
         match tok {
             Ok(t) =>
             {
-                self.currentToken = t.clone();
+                self.currentToken = Some(t.clone());
                 return true;
             },
             Err(e) => {
                 match e.description() {
                     "EOF" =>
                     {
-                        self.currentToken = Token::EOF;
+                        self.currentToken = None;//Token::EOF;
                         return true;
                     },
                     err => panic!("{}", err)
@@ -136,14 +125,14 @@ impl Parser {
         match tok {
             Ok(t) =>
             {
-                self.currentToken = t.clone();
+                self.currentToken = Some(t.clone());
                 return true;
             },
             Err(e) => {
                 match e.description() {
                     "EOF" =>
                     {
-                        self.currentToken = Token::EOF;
+                        self.currentToken = Some(Token::EOF);
                         return true;
                     },
                     err => panic!("{}", err)
@@ -158,22 +147,21 @@ impl Parser {
 
         println!("Starting Parsing");
 
-        /*
-        struct LexState lexstate;
-        struct FuncState funcstate;
-        lexstate.buff = buff;
-        luaX_setinput(L, &lexstate, z, luaS_new(L, name));
-        open_func(&lexstate, &funcstate);
-        funcstate.f->is_vararg = VARARG_ISVARARG;  /* main func. is always vararg */
-        luaX_next(&lexstate);  /* read first token */
-        chunk(&lexstate);
-        check(&lexstate, TK_EOS);
-        close_func(&lexstate);
-        lua_assert(funcstate.prev == NULL);
-        lua_assert(funcstate.f->nups == 0);
-        lua_assert(lexstate.fs == NULL);
-        return funcstate.f;
-    */
+        //struct LexState lexstate;
+        //struct FuncState funcstate;
+        //lexstate.buff = buff;
+        //luaX_setinput(L, &lexstate, z, luaS_new(L, name));
+        //open_func(&lexstate, &funcstate);
+        //funcstate.f->is_vararg = VARARG_ISVARARG;  /* main func. is always vararg */
+        //luaX_next(&lexstate);  /* read first token */
+        self.chunk();//chunk(&lexstate);
+        //check(&lexstate, TK_EOS);
+        //close_func(&lexstate);
+        //lua_assert(funcstate.prev == NULL);
+        //lua_assert(funcstate.f->nups == 0);
+        //lua_assert(lexstate.fs == NULL);
+        //return funcstate.f;
+
 
         println!("Completed Parsing");
 
@@ -181,20 +169,33 @@ impl Parser {
     }
 
     pub fn chunk(&mut self) {
+        println!("Parser::chuck");
         /* chunk -> { stat [`;'] } */
         let mut islast = false;
+        let mut cToken : & Token = &self.currentToken.clone().unwrap().clone();
+
+        //println!("token = {}", cToken);
         //enterlevel(self); // code gen
         //while !islast && block_follow(self.getNextToken()) {
-        while !islast && block_follow(&self.currentToken) {
-            islast = self.statement();
+        //while !islast && block_follow(cToken) {
+        loop {
+            println!("peek = {}", self.lexer.peek_token().unwrap().clone());
+            let tok = self.lexer.next_token();
+            match tok {
+                Ok(mut t) => { println!("token = {} - peek = {}", t, self.lexer.peek_token().unwrap().clone()); },
+                Err(e) => {}
+            }
+        }
+            //islast = self.statement();
             //testnext(ls, ';');
             //lua_assert(ls->fs->f->maxstacksize >= ls->fs->freereg && ls->fs->freereg >= ls->fs->nactvar);
             //ls->fs->freereg = ls->fs->nactvar;  /* free registers */
-        }
+        //}
         //leavelevel(ls);   // code gen
     }
 
     pub fn block(&mut self) {
+        println!("Parser::block");
         /* block -> chunk */
         //FuncState *fs = ls->fs;
         //BlockCnt bl;
@@ -205,6 +206,7 @@ impl Parser {
     }
 
     pub fn statement(&mut self) -> bool{
+        println!("Parser::Statement");
         let line = self.lexer.line_number;
 
         match self.lexer.peek_token() {
