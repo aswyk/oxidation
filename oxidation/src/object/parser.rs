@@ -38,5 +38,20 @@ pub struct UpValDescription {
 }
 
 pub struct FuncState {
-    i: i32,
+    f: Proto,
+    h: Table,
+    prev: Box<FuncState>,
+    ls: Box<LexState>,
+    //lua state,
+    bl: Box<BlockCnt>,
+    pc: i32,
+    lasttarget: i32,
+    jpc: i32,
+    freereg: i32,
+    nk: i32,
+    np: i32,
+    nlocvars: i16,
+    nactvar: u8,
+    upvalues: Vec<UpValDescription>,// = Vec::with_capacity(1000),
+    actvar: Vec<u16>,// = Vec::with_capacity(1000),
 }
