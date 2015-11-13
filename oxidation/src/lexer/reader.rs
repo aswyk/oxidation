@@ -1,31 +1,31 @@
 use std::io::prelude::*;
 use std::io::BufReader;
-use std::io::Result;
-use std::io::{Error, ErrorKind};
+use std::error::Error;
+use std::io::{Error as IOError, ErrorKind as IOErrorKind};
 use std::path::Path;
 use std::fs::File;
 use std::char;
 
 use parser::tokens::Token;
+use lexer::result::{LexerResult, LexerError};
 
 pub trait Reader {
-  fn next_token(&mut self) -> Result<Token>;
-  fn peek_token(&mut self) -> Result<Token>;
-  fn error(&self, &str) -> !;
+  fn next_token(&mut self) -> LexerResult<Token>;
+  fn peek_token(&mut self) -> LexerResult<Token>;
 }
 
 pub struct FileReader {
-  pub file_name   : String,
-  pub line_number : u32,
+  pub file_name     : String,
+  pub line_number   : u32,
 
-  source_line     : String,
-  line_pos        : usize,
-  source_file     : BufReader<File>,
-  peek_tok        : Option<Token>
+  source_line       : String,
+  line_pos          : usize,
+  source_file       : BufReader<File>,
+  peek_tok          : Option<Token>
 }
 
 impl FileReader {
-  pub fn new(filename : &str) -> Result<FileReader> {
+  pub fn new(filename : &str) -> LexerResult<FileReader> {
     let f = try!(File::open(Path::new(filename)));
     let mut b = BufReader::new(f);
     let mut s = String::new();
@@ -43,7 +43,7 @@ impl FileReader {
   }
 
   // Advance the lexer state ahead one character
-  fn bump(&mut self) -> Result<()> {
+  fn bump(&mut self) -> LexerResult<()> {
     if self.line_pos >= self.source_line.len() - 1 {
       self.bump_line()
     } else {
@@ -54,12 +54,14 @@ impl FileReader {
   }
 
   // Advance the lexer state ahead one line
-  fn bump_line(&mut self) -> Result<()> {
+  fn bump_line(&mut self) -> LexerResult<()> {
     self.source_line.clear();
     let r = self.source_file.read_line(&mut self.source_line);
     match r {
-      Ok(0) => return Err(Error::new(ErrorKind::Other, "EOF")),
-      Err(e) => return Err(e),
+      Ok(0) =>
+        return Err(LexerError::from(IOError::new(IOErrorKind::Other, "EOF"))),
+      Err(e) =>
+        return Err(LexerError::from(e)),
       _ => ()
     }
     self.line_pos = 0;
@@ -73,11 +75,11 @@ impl FileReader {
   }
 
   // Skip n equals signs in a long string delimiter. Return n.
-  fn skip_sep(&mut self) -> Result<i8> {
+  fn skip_sep(&mut self) -> LexerResult<i8> {
     let mut n = 0;
     let s = self.current();
     if s != '[' && s != ']' {
-      self.error("skip_sep");
+      return Err(LexerError::GenericError("skip_sep"))
     }
     try!(self.bump());
     loop {
@@ -96,7 +98,7 @@ impl FileReader {
   }
 
   // Read a long string of the form [[str]], [=[str]=], ...
-  fn read_long_string(&mut self, sep : i8) -> Result<String> {
+  fn read_long_string(&mut self, sep : i8) -> LexerResult<String> {
     let mut s = String::new();
 
     try!(self.bump());   // skip 2nd [
@@ -124,16 +126,18 @@ impl FileReader {
   }
 
   // Read a normal form string in quotes
-  fn read_string(&mut self) -> Result<String> {
+  fn read_string(&mut self) -> LexerResult<String> {
     let del = &self.current();
     let mut s = String::new();
     try!(self.bump());   // skip leading del
 
     while self.current() != *del {
       match self.current() {
-        '\n' | '\r' => self.error("unfinished string"),
+        '\n' | '\r' =>
+          return Err(LexerError::GenericError("unfinished string")),
         '\\' => {
-          let mut c : char;
+          // TODO: I feel like this should be mut...
+          let c : char;
           try!(self.bump());
           match self.current() {
             'a' => c = '\x07',
@@ -173,7 +177,7 @@ impl FileReader {
   }
 
   // Read a number... might be malformed...
-  fn read_number(&mut self) -> Result<String> {
+  fn read_number(&mut self) -> LexerResult<String> {
     let mut s = String::new();
 
     loop {
@@ -203,7 +207,7 @@ impl FileReader {
   }
 
   // Read a keyword or identifier
-  fn read_name(&mut self) -> Result<Token> {
+  fn read_name(&mut self) -> LexerResult<Token> {
     let mut s = String::new();
 
     while self.current().is_alphanumeric() || self.current() == '_' {
@@ -238,7 +242,7 @@ impl FileReader {
   }
 
   // Read an operator or the "operator or equal" form
-  fn or_eq(&mut self, base : Token, eq : Token) -> Result<Token> {
+  fn or_eq(&mut self, base : Token, eq : Token) -> LexerResult<Token> {
     try!(self.bump());
     if self.current() != '=' {
       return Ok(base);
@@ -247,11 +251,9 @@ impl FileReader {
       return Ok(eq);
     }
   }
-}
 
-impl Reader for FileReader {
-  /// Get the next token.  Advances the lexer state.
-  fn next_token(&mut self) -> Result<Token> {
+  // Real impl for next_token wrapped for EOF
+  fn real_next_token(&mut self) -> LexerResult<Token> {
     match self.peek_tok.clone() {
       Some(tok) => {
         self.peek_tok = None;
@@ -293,7 +295,7 @@ impl Reader for FileReader {
             // Just a single [
             return Ok(Token::LSquare);
           } else {
-            self.error("invalid string delimiter");
+            return Err(LexerError::GenericError("invalid string delimiter"));
           }
         },
 
@@ -352,14 +354,29 @@ impl Reader for FileReader {
           } else if self.current().is_alphabetic() || self.current() == '_' {
             return self.read_name();
           } else {
-            self.error("unexpected character");
+            return Err(LexerError::GenericError("unexpected character"));
           }
         }
       }
     }
   }
+}
 
-  fn peek_token(&mut self) -> Result<Token> {
+impl Reader for FileReader {
+  /// Get the next token.  Advances the lexer state.
+  fn next_token(&mut self) -> LexerResult<Token> {
+    let tok = self.real_next_token();
+    match tok {
+      Ok(t) => Ok(t),
+      Err(e) => match e.description() {
+        "EOF" => Ok(Token::EOF),
+        _ => Err(e)
+      }
+    }
+  }
+
+  /// Have a look at the next token.  May advance lexer state, may not.
+  fn peek_token(&mut self) -> LexerResult<Token> {
     match self.peek_tok.clone() {
       Some(tok) => Ok(tok),
       None => {
@@ -368,10 +385,5 @@ impl Reader for FileReader {
         Ok(tok)
       }
     }
-  }
-
-  /// Report a lexer error
-  fn error(&self, s : &str) -> ! {
-    panic!("lexical error: {}:{}: {}", self.file_name, self.line_number, s)
   }
 }

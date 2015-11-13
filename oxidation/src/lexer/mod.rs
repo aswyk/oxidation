@@ -7,6 +7,7 @@
 
 
 pub mod reader;
+pub mod result;
 
 
 #[cfg(test)]
@@ -14,6 +15,7 @@ mod tests {
   use std::error::Error;
   use lexer::reader::Reader;
   use lexer::reader::FileReader;
+  use parser::tokens::Token;
 
   fn lex(filename : &str) {
     let mut f = FileReader::new(filename)
@@ -23,13 +25,9 @@ mod tests {
     loop {
       let tok = f.next_token();
       match tok {
+        Ok(Token::EOF) => break,
         Ok(t) => println!("{:?}", t),
-        Err(e) => {
-          match e.description() {
-            "EOF" => break,
-            err => panic!("{}", err)
-          }
-        }
+        Err(e) => { panic!("{}", e.description()) }
       }
     }
   }
