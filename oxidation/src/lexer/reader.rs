@@ -17,6 +17,7 @@ pub trait Reader {
 pub struct FileReader {
   pub file_name     : String,
   pub line_number   : u32,
+  pub column_number : u32,
 
   source_line       : String,
   line_pos          : usize,
@@ -34,6 +35,7 @@ impl FileReader {
     Ok(FileReader {
       file_name: filename.to_string(),
       line_number: 1,
+      column_number: 1,
 
       source_line: s,
       line_pos: 0,
@@ -49,6 +51,7 @@ impl FileReader {
     } else {
       let c = self.current();
       self.line_pos += c.len_utf8();
+      self.column_number += 1;
       Ok(())
     }
   }
@@ -66,6 +69,7 @@ impl FileReader {
     }
     self.line_pos = 0;
     self.line_number += 1;
+    self.column_number = 1;
     Ok(())
   }
 
