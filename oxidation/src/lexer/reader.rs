@@ -1,45 +1,41 @@
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::error::Error;
-use std::io::{Error as IOError, ErrorKind as IOErrorKind};
-use std::path::Path;
-use std::fs::File;
 use std::char;
 
 use parser::tokens::Token;
 use lexer::result::{LexerResult, LexerError};
+use lexer::stringsource::StringSource;
+
 
 pub trait Reader {
   fn next_token(&mut self) -> LexerResult<Token>;
   fn peek_token(&mut self) -> LexerResult<Token>;
 }
 
-pub struct FileReader {
-  pub file_name     : String,
+
+pub struct Lexer<'a> {
+  pub source_name     : String,
   pub line_number   : u32,
   pub column_number : u32,
 
+  source            : &'a mut StringSource,
   source_line       : String,
   line_pos          : usize,
-  source_file       : BufReader<File>,
   peek_tok          : Option<Token>
 }
 
-impl FileReader {
-  pub fn new(filename : &str) -> LexerResult<FileReader> {
-    let f = try!(File::open(Path::new(filename)));
-    let mut b = BufReader::new(f);
-    let mut s = String::new();
-    try!(b.read_line(&mut s));
+impl<'a> Lexer<'a> {
+  pub fn new(source_name: &str, source: &'a mut StringSource)
+    -> LexerResult<Lexer<'a>>
+  {
+    let s = try!(source.get_string());
 
-    Ok(FileReader {
-      file_name: filename.to_string(),
+    Ok(Lexer {
+      source_name: source_name.to_string(),
       line_number: 1,
       column_number: 1,
 
+      source: source,
       source_line: s,
       line_pos: 0,
-      source_file: b,
       peek_tok: None
     })
   }
@@ -59,17 +55,13 @@ impl FileReader {
   // Advance the lexer state ahead one line
   fn bump_line(&mut self) -> LexerResult<()> {
     self.source_line.clear();
-    let r = self.source_file.read_line(&mut self.source_line);
-    match r {
-      Ok(0) =>
-        return Err(LexerError::from(IOError::new(IOErrorKind::Other, "EOF"))),
-      Err(e) =>
-        return Err(LexerError::from(e)),
-      _ => ()
-    }
+    let s = try!(self.source.get_string());
+
+    self.source_line = s;
     self.line_pos = 0;
     self.line_number += 1;
     self.column_number = 1;
+
     Ok(())
   }
 
@@ -366,16 +358,15 @@ impl FileReader {
   }
 }
 
-impl Reader for FileReader {
+
+impl<'a> Reader for Lexer<'a> {
   /// Get the next token.  Advances the lexer state.
   fn next_token(&mut self) -> LexerResult<Token> {
     let tok = self.real_next_token();
     match tok {
       Ok(t) => Ok(t),
-      Err(e) => match e.description() {
-        "EOF" => Ok(Token::EOF),
-        _ => Err(e)
-      }
+      Err(LexerError::EOF) => Ok(Token::EOF),
+      err => err
     }
   }
 

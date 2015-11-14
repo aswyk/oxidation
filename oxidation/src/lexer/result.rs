@@ -4,7 +4,8 @@ use std::fmt::{Display,Formatter};
 #[derive(Debug)]
 pub enum LexerError {
   IOError(::std::io::Error),
-  GenericError(&'static str)
+  GenericError(&'static str),
+  EOF
 }
 
 pub type LexerResult<T> = Result<T, LexerError>;
@@ -13,14 +14,16 @@ impl Error for LexerError {
   fn description(&self) -> &str {
     match *self {
       LexerError::IOError(ref e) => e.description(),
-      LexerError::GenericError(ref s) => &s
+      LexerError::GenericError(ref s) => &s,
+      LexerError::EOF => "<eof>"
     }
   }
 
   fn cause(&self) -> Option<&Error> {
     match *self {
       LexerError::IOError(ref e) => Some(e),
-      LexerError::GenericError(_) => None
+      LexerError::GenericError(_) => None,
+      LexerError::EOF => None
     }
   }
 }
@@ -35,7 +38,8 @@ impl Display for LexerError {
   fn fmt(&self, fmt: &mut Formatter) -> Result<(), ::std::fmt::Error> {
     match *self {
       LexerError::IOError(ref e) => fmt.write_fmt(format_args!("{}", e)),
-      LexerError::GenericError(ref s) => fmt.write_fmt(format_args!("{}", s))
+      LexerError::GenericError(ref s) => fmt.write_fmt(format_args!("{}", s)),
+      LexerError::EOF => fmt.write_fmt(format_args!("<eof>"))
     }
   }
 }
