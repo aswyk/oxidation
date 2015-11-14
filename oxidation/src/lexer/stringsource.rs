@@ -27,8 +27,10 @@ pub struct LexString {
 
 impl LexString {
   pub fn new(s: String) -> LexString {
+    let mut v: Vec<_> = s.split("\n").map(|x| x.to_string()).collect();
+    v.push("\n".to_string());  // Ensure no eof until after all lexemes
     LexString {
-      source_lines: s.split("\n").map(|x| x.to_string()).collect(),
+      source_lines: v,
       current_line: 0
     }
   }

@@ -55,7 +55,7 @@ mod tests {
       let tok = f.next_token();
       match tok {
         Ok(Token::EOF) => break,
-        Ok(t) => println!("{}: {:?}", f.line_number, t),
+        Ok(t) => println!("{:?}", t),
         Err(e) => panic!("{}", e.description())
       }
     }
@@ -72,8 +72,7 @@ mod tests {
     //       return doesn't show up without the newline
     lex_string(r"local x = 1 + 2
                  print(x)
-                 return
-                 ");
+                 return");
   }
 
   /*#[test]
