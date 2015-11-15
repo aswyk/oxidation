@@ -1,6 +1,6 @@
 use std::char;
 
-use parser::tokens::Token;
+use parser::tokens::{Token, TokenType as TT};
 use lexer::result::{LexerResult, LexerError};
 use lexer::stringsource::StringSource;
 
@@ -12,10 +12,9 @@ pub trait Reader {
 
 
 pub struct Lexer<'a> {
-  pub source_name     : String,
-  pub line_number   : u32,
-  pub column_number : u32,
+  pub source_name   : String,
 
+  line_number       : u32,
   source            : &'a mut StringSource,
   source_line       : String,
   line_pos          : usize,
@@ -30,14 +29,18 @@ impl<'a> Lexer<'a> {
 
     Ok(Lexer {
       source_name: source_name.to_string(),
-      line_number: 1,
-      column_number: 1,
 
+      line_number: 1,
       source: source,
       source_line: s,
       line_pos: 0,
       peek_tok: None
     })
+  }
+
+  // Make a new token with the current line number
+  fn token(&self, tt: TT) -> Token {
+    Token::new(self.line_number, tt)
   }
 
   // Advance the lexer state ahead one character
@@ -47,7 +50,6 @@ impl<'a> Lexer<'a> {
     } else {
       let c = self.current();
       self.line_pos += c.len_utf8();
-      self.column_number += 1;
       Ok(())
     }
   }
@@ -60,7 +62,6 @@ impl<'a> Lexer<'a> {
     self.source_line = s;
     self.line_pos = 0;
     self.line_number += 1;
-    self.column_number = 1;
 
     Ok(())
   }
@@ -212,28 +213,28 @@ impl<'a> Lexer<'a> {
     }
 
     match &s[0..] {
-      "and" => Ok(Token::And),
-      "break" => Ok(Token::Break),
-      "do" => Ok(Token::Do),
-      "else" => Ok(Token::Else),
-      "elseif" => Ok(Token::Elseif),
-      "end" => Ok(Token::End),
-      "false" => Ok(Token::False),
-      "for" => Ok(Token::For),
-      "function" => Ok(Token::Function),
-      "if" => Ok(Token::If),
-      "in" => Ok(Token::In),
-      "local" => Ok(Token::Local),
-      "nil" => Ok(Token::Nil),
-      "not" => Ok(Token::Not),
-      "or" => Ok(Token::Or),
-      "repeat" => Ok(Token::Repeat),
-      "return" => Ok(Token::Return),
-      "then" => Ok(Token::Then),
-      "true" => Ok(Token::True),
-      "until" => Ok(Token::Until),
-      "while" => Ok(Token::While),
-      _ => Ok(Token::Name(s))
+      "and" => Ok(self.token(TT::And)),
+      "break" => Ok(self.token(TT::Break)),
+      "do" => Ok(self.token(TT::Do)),
+      "else" => Ok(self.token(TT::Else)),
+      "elseif" => Ok(self.token(TT::Elseif)),
+      "end" => Ok(self.token(TT::End)),
+      "false" => Ok(self.token(TT::False)),
+      "for" => Ok(self.token(TT::For)),
+      "function" => Ok(self.token(TT::Function)),
+      "if" => Ok(self.token(TT::If)),
+      "in" => Ok(self.token(TT::In)),
+      "local" => Ok(self.token(TT::Local)),
+      "nil" => Ok(self.token(TT::Nil)),
+      "not" => Ok(self.token(TT::Not)),
+      "or" => Ok(self.token(TT::Or)),
+      "repeat" => Ok(self.token(TT::Repeat)),
+      "return" => Ok(self.token(TT::Return)),
+      "then" => Ok(self.token(TT::Then)),
+      "true" => Ok(self.token(TT::True)),
+      "until" => Ok(self.token(TT::Until)),
+      "while" => Ok(self.token(TT::While)),
+      _ => Ok(self.token(TT::Name(s)))
     }
   }
 
@@ -263,7 +264,7 @@ impl<'a> Lexer<'a> {
         '-' => {
           try!(self.bump());
           if self.current() != '-' {
-            return Ok(Token::Minus);
+            return Ok(self.token(TT::Minus));
           } else {
             // Lex a comment
             try!(self.bump());
@@ -286,24 +287,40 @@ impl<'a> Lexer<'a> {
           let sep = try!(self.skip_sep());
           if sep >= 0 {
             let s = try!(self.read_long_string(sep));
-            return Ok(Token::String(s));
+            return Ok(self.token(TT::String(s)));
           } else if sep == -1 {
             // Just a single [
-            return Ok(Token::LSquare);
+            return Ok(self.token(TT::LSquare));
           } else {
             return Err(LexerError::GenericError("invalid string delimiter"));
           }
         },
 
         // Comparison operators
-        '=' => return self.or_eq(Token::Assign, Token::Eq),
-        '<' => return self.or_eq(Token::Lt, Token::Leq),
-        '>' => return self.or_eq(Token::Gt, Token::Geq),
-        '~' => return self.or_eq(Token::Not, Token::Neq),
+        '=' => {
+          let assign = self.token(TT::Assign);
+          let eq = self.token(TT::Eq);
+          return self.or_eq(assign, eq)
+        },
+        '<' => {
+          let lt = self.token(TT::Lt);
+          let leq = self.token(TT::Leq);
+          return self.or_eq(lt, leq)
+        },
+        '>' => {
+          let gt = self.token(TT::Gt);
+          let geq = self.token(TT::Geq);
+          return self.or_eq(gt, geq)
+        },
+        '~' => {
+          let not = self.token(TT::Not);
+          let neq = self.token(TT::Neq);
+          return self.or_eq(not, neq)
+        },
 
         '"' | '\'' => {
           let s = try!(self.read_string());
-          return Ok(Token::String(s));
+          return Ok(self.token(TT::String(s)));
         },
 
         '.' => {
@@ -311,33 +328,33 @@ impl<'a> Lexer<'a> {
           if self.current() == '.' {
             try!(self.bump());
             if self.current() == '.' {
-              return Ok(Token::Dotdotdot);
+              return Ok(self.token(TT::Dotdotdot));
             } else {
-              return Ok(Token::Dotdot);
+              return Ok(self.token(TT::Dotdot));
             }
           } else if !self.current().is_digit(10) {
-            return Ok(Token::Dot);
+            return Ok(self.token(TT::Dot));
           } else {
             let s = try!(self.read_number());
-            return Ok(Token::Number(s));
+            return Ok(self.token(TT::Number(s)));
           }
         },
 
         // The easy ones.  Unambiguous single-char tokens
-        '+' => { try!(self.bump()); return Ok(Token::Plus) },
-        '*' => { try!(self.bump()); return Ok(Token::Times) },
-        '/' => { try!(self.bump()); return Ok(Token::Divide) },
-        '%' => { try!(self.bump()); return Ok(Token::Mod) },
-        '^' => { try!(self.bump()); return Ok(Token::Exp) },
-        '#' => { try!(self.bump()); return Ok(Token::Len) },
-        '(' => { try!(self.bump()); return Ok(Token::LParen) },
-        ')' => { try!(self.bump()); return Ok(Token::RParen) },
-        '{' => { try!(self.bump()); return Ok(Token::LBrace) },
-        '}' => { try!(self.bump()); return Ok(Token::RBrace) },
-        ']' => { try!(self.bump()); return Ok(Token::RSquare) },
-        ';' => { try!(self.bump()); return Ok(Token::Semi) },
-        ':' => { try!(self.bump()); return Ok(Token::Colon) },
-        ',' => { try!(self.bump()); return Ok(Token::Comma) },
+        '+' => { try!(self.bump()); return Ok(self.token(TT::Plus)) },
+        '*' => { try!(self.bump()); return Ok(self.token(TT::Times)) },
+        '/' => { try!(self.bump()); return Ok(self.token(TT::Divide)) },
+        '%' => { try!(self.bump()); return Ok(self.token(TT::Mod)) },
+        '^' => { try!(self.bump()); return Ok(self.token(TT::Exp)) },
+        '#' => { try!(self.bump()); return Ok(self.token(TT::Len)) },
+        '(' => { try!(self.bump()); return Ok(self.token(TT::LParen)) },
+        ')' => { try!(self.bump()); return Ok(self.token(TT::RParen)) },
+        '{' => { try!(self.bump()); return Ok(self.token(TT::LBrace)) },
+        '}' => { try!(self.bump()); return Ok(self.token(TT::RBrace)) },
+        ']' => { try!(self.bump()); return Ok(self.token(TT::RSquare)) },
+        ';' => { try!(self.bump()); return Ok(self.token(TT::Semi)) },
+        ':' => { try!(self.bump()); return Ok(self.token(TT::Colon)) },
+        ',' => { try!(self.bump()); return Ok(self.token(TT::Comma)) },
 
         _ => {
           if self.current().is_whitespace() {
@@ -346,7 +363,7 @@ impl<'a> Lexer<'a> {
             continue;
           } else if self.current().is_digit(10) {
             let s = try!(self.read_number());
-            return Ok(Token::Number(s));
+            return Ok(self.token(TT::Number(s)));
           } else if self.current().is_alphabetic() || self.current() == '_' {
             return self.read_name();
           } else {
@@ -365,7 +382,7 @@ impl<'a> Reader for Lexer<'a> {
     let tok = self.real_next_token();
     match tok {
       Ok(t) => Ok(t),
-      Err(LexerError::EOF) => Ok(Token::EOF),
+      Err(LexerError::EOF) => Ok(self.token(TT::EOF)),
       err => err
     }
   }

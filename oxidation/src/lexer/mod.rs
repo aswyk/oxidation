@@ -21,7 +21,7 @@ mod tests {
   use lexer::reader::Reader;
   use lexer::reader::Lexer;
   use lexer::stringsource::LexString;
-  use parser::tokens::Token;
+  use parser::tokens::TokenType;
 
   fn lex(filename: &str) {
     let f = File::open(Path::new(filename))
@@ -38,8 +38,11 @@ mod tests {
     loop {
       let tok = f.next_token();
       match tok {
-        Ok(Token::EOF) => break,
-        Ok(t) => println!("{:?}", t),
+        Ok(t) =>
+          match t.token_type {
+            TokenType::EOF => break,
+            tt => println!("{}: {:?}", t.line_number, tt)
+          },
         Err(e) => panic!("{}", e.description())
       }
     }
@@ -54,8 +57,11 @@ mod tests {
     loop {
       let tok = f.next_token();
       match tok {
-        Ok(Token::EOF) => break,
-        Ok(t) => println!("{:?}", t),
+        Ok(t) =>
+          match t.token_type {
+            TokenType::EOF => break,
+            tt => println!("{}: {:?}", t.line_number, tt)
+          },
         Err(e) => panic!("{}", e.description())
       }
     }
