@@ -1,3 +1,4 @@
+use std::hash::{Hash, Hasher};
 
 use state::LuaState;
 
@@ -42,7 +43,11 @@ impl PartialEq for InString {
 
 impl Eq for InString {}
 
-// TODO: impl Hash for InString
+impl Hash for InString {
+  fn hash<H>(&self, state: &mut H) where H: Hasher {
+    self.string.hash(state)
+  }
+}
 
 impl ToString for InString {
   fn to_string(&self) -> String {
