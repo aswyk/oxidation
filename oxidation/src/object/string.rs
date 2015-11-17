@@ -5,9 +5,10 @@ use state::LuaState;
 
 /// An interned string.  String interning guarantees that only
 /// one copy of a string exists in the runtime at any given time.
+#[allow(raw_pointer_derive)]
 #[derive(Debug,Clone)]
 pub struct InString {
-  string: Rc<String>,        // TODO: use &str and .as_ptr() instead?
+  string: Rc<String>,
   intern: *const Rc<String>
 }
 

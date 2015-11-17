@@ -23,6 +23,9 @@ mod tests {
     let b = InString::new(&mut ls, &"hello".to_string());
     let c = InString::new(&mut ls, &"world".to_string());
 
+    println!("{:?}", a);
+    println!("{:?}", b);
+
     assert!(a == b);
     assert!(a != c);
 

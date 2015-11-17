@@ -9,7 +9,7 @@ use object::table::Table;
 // To get around Rust's trait orphan rules
 #[derive(PartialEq,Debug,Clone)]
 pub struct LuaNumber {
-  value: TLuaNumber
+  pub value: TLuaNumber
 }
 
 
