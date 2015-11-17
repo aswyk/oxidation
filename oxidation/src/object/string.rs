@@ -40,6 +40,8 @@ impl PartialEq for InString {
   }
 }
 
+impl Eq for InString {}
+
 // TODO: impl Hash for InString
 
 impl ToString for InString {
