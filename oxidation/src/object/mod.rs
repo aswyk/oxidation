@@ -7,8 +7,8 @@
 
 pub mod values;
 pub mod string;
-//pub mod function;
-//pub mod table;
+pub mod function;
+pub mod table;
 
 #[cfg(test)]
 mod tests {
