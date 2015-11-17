@@ -20,7 +20,9 @@ pub mod lexer;
 pub mod parser;
 pub mod vm;
 pub mod gc;
+pub mod state;
 pub mod object;
+pub mod config;
 
 #[test]
 fn it_works() {
