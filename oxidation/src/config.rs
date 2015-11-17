@@ -1,4 +1,6 @@
 // Configurable stuff
 
-pub type LuaNumber = f64;
+/// The type of numbers in Lua
+/// Use f64 or an integer type
+pub type TLuaNumber = f64;
 

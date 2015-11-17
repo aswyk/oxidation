@@ -5,6 +5,7 @@ use state::LuaState;
 
 /// An interned string.  String interning guarantees that only
 /// one copy of a string exists in the runtime at any given time.
+#[derive(Debug,Clone)]
 pub struct InString {
   string: Rc<String>,        // TODO: use &str and .as_ptr() instead?
   intern: *const Rc<String>
@@ -46,7 +47,8 @@ impl Eq for InString {}
 
 impl Hash for InString {
   fn hash<H>(&self, state: &mut H) where H: Hasher {
-    self.string.hash(state)
+    let ref s = *self.string;
+    s.hash(state)
   }
 }
 

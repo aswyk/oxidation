@@ -2,6 +2,7 @@ use object::values::Value;
 use object::string::InString;
 use vm::opcode::Instruction;
 
+#[derive(PartialEq,Eq,Hash,Debug,Clone)]
 pub struct LocVar {
   varname: InString,
   startpc: u32,             // first point where variable is active
@@ -16,6 +17,7 @@ pub const NEEDSARG: u8 = 4;
 
 
 /// Function prototypes
+#[derive(PartialEq,Eq,Hash,Debug,Clone)]
 pub struct Proto {
   k: Vec<Value>,            // constants used by the function
   code: Vec<Instruction>,
