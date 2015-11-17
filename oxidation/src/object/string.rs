@@ -1,12 +1,13 @@
 use std::hash::{Hash, Hasher};
+use std::rc::Rc;
 
 use state::LuaState;
 
 /// An interned string.  String interning guarantees that only
 /// one copy of a string exists in the runtime at any given time.
 pub struct InString {
-  string: String,        // TODO: use &str and .as_ptr() instead?
-  intern: *const String
+  string: Rc<String>,        // TODO: use &str and .as_ptr() instead?
+  intern: *const Rc<String>
 }
 
 impl InString {
@@ -22,14 +23,14 @@ impl InString {
     }
 
     if insert {
-      ls.strings.insert(s.clone(), s.clone());
+      ls.strings.insert(s.clone(), Rc::new(s.clone()));
     }
     
-    let x = &ls.strings[s];
+    let x = ls.strings[s].clone();
     
     InString {
-      string: s.clone(),
-      intern: x as *const String
+      string: x,
+      intern: &ls.strings[s] as *const Rc<String>
     }
   }
 }
@@ -51,7 +52,8 @@ impl Hash for InString {
 
 impl ToString for InString {
   fn to_string(&self) -> String {
-    self.string.clone()
+    let ref s = *self.string;
+    s.clone()
   }
 }
 

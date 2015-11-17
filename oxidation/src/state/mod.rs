@@ -5,12 +5,13 @@
 //! # Examples
 //!
 
+use std::rc::Rc;
 use std::collections::HashMap;
 
 pub struct LuaState {
   // Intern pool for strings.
   // TODO: Change to a HashSet once HashSet::get() is stable
-  pub strings: HashMap<String, String>,
+  pub strings: HashMap<String, Rc<String>>,
 }
 
 impl LuaState {
