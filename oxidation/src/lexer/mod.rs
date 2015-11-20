@@ -28,9 +28,9 @@ mod tests {
             .ok()
             .expect(&format!("Unable to open {} for test", filename)[0..]);
 
-    let mut b = BufReader::new(f);
+    let b = Box::new(BufReader::new(f));
 
-    let mut f = Lexer::new(filename, &mut b)
+    let mut f = Lexer::new(filename, b)
                 .ok()
                 .expect(&format!("Unable to create lexer for {}", filename)[0..]);
 
@@ -49,8 +49,8 @@ mod tests {
   }
 
   fn lex_string(s: &str) {
-    let mut source = LexString::new(s.to_string());
-    let mut f = Lexer::new("<string>", &mut source)
+    let source = Box::new(LexString::new(s.to_string()));
+    let mut f = Lexer::new("<string>", source)
                 .ok()
                 .expect(&format!("Unable to create lexer for user string"));
 

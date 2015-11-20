@@ -11,19 +11,19 @@ pub trait Reader {
 }
 
 
-pub struct Lexer<'a> {
+pub struct Lexer {
   pub source_name   : String,
 
   line_number       : u32,
-  source            : &'a mut StringSource,
+  source            : Box<StringSource>,
   source_line       : String,
   line_pos          : usize,
   peek_tok          : Option<Token>
 }
 
-impl<'a> Lexer<'a> {
-  pub fn new(source_name: &str, source: &'a mut StringSource)
-    -> LexerResult<Lexer<'a>>
+impl Lexer {
+  pub fn new(source_name: &str, mut source: Box<StringSource>)
+    -> LexerResult<Lexer>
   {
     let s = try!(source.get_string());
 
@@ -376,7 +376,7 @@ impl<'a> Lexer<'a> {
 }
 
 
-impl<'a> Reader for Lexer<'a> {
+impl Reader for Lexer {
   /// Get the next token.  Advances the lexer state.
   fn next_token(&mut self) -> LexerResult<Token> {
     let tok = self.real_next_token();
