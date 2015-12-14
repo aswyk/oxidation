@@ -1,6 +1,7 @@
+// This code needs a lot of love...
+//
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::rc::Rc;
 
 use config::TLuaNumber;
 
@@ -8,8 +9,8 @@ use object::values::Value;
 
 #[derive(PartialEq,Eq,Debug,Clone)]
 pub struct Table {
-  array_part: Vec<Rc<Value>>,
-  hash_part:  HashMap<Value, Rc<Value>>
+  array_part: Vec<Value>,
+  hash_part:  HashMap<Value, Value>
 }
 
 impl Table {
@@ -22,7 +23,7 @@ impl Table {
 
   pub fn new_with_array(a: Vec<Value>) -> Table {
     Table {
-      array_part: a.into_iter().map(|x| Rc::new(x)).collect(),
+      array_part: a,
       hash_part: HashMap::new()
     }
   }
@@ -32,21 +33,21 @@ impl Table {
       let ln = self.array_part.len();
       if k < ln * 2 {
         if k < ln {
-          self.array_part[k] = Rc::new(val);
+          self.array_part[k] = val;
         } else {
           self.grow_array(ln * 2);
-          self.array_part[k] = Rc::new(val);
+          self.array_part[k] = val;
         }
       } else {
-        self.hash_part.insert(key, Rc::new(val));
+        self.hash_part.insert(key, val);
       }
     } else {
-      self.hash_part.insert(key, Rc::new(val));
+      self.hash_part.insert(key, val);
     }
   }
 
-  pub fn get(&self, key: &Value) -> Rc<Value> {
-    let mut rc = Rc::new(Value::Nil);
+  pub fn get(&self, key: &Value) -> Value {
+    let mut rc = Value::Nil;
 
     if let Some(k) = arrayindex(&key) {
       if k < self.array_part.len() {
@@ -55,30 +56,30 @@ impl Table {
       
       // If it's not in the array part even if it could be, check
       // the hash part.
-      if let Value::Nil = *rc {
+      if let Value::Nil = rc {
         if self.hash_part.contains_key(key) {
           return self.hash_part[key].clone();
         } else {
-          return Rc::new(Value::Nil);
+          return Value::Nil;
         }
       } else {
-        return rc;
+        return rc.clone();
       }
     } else {
       if self.hash_part.contains_key(key) {
         return self.hash_part[key].clone();
       } else {
-        return Rc::new(Value::Nil);
+        return Value::Nil;
       }
     }
 
-    return Rc::new(Value::Nil);
+    return Value::Nil;
   }
 
   fn grow_array(&mut self, capacity: usize) {
     let i = self.array_part.len();
     while i <= capacity {
-      self.array_part.push(Rc::new(Value::Nil));
+      self.array_part.push(Value::Nil);
     }
   }
 }

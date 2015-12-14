@@ -6,33 +6,34 @@ use object::string::InString;
 use object::function::Proto;
 use object::table::Table;
 
+use gc::GCObject;
+
+use state::LuaState;
+
 // To get around Rust's trait orphan rules
 #[derive(PartialEq,Debug,Clone)]
 pub struct LuaNumber {
   pub value: TLuaNumber
 }
 
-
 #[derive(PartialEq,Eq,Hash,Debug,Clone)]
 pub enum Value {
   Nil,
-  Boolean(bool),
   Number(LuaNumber),
-  String(InString),
-  Function(Proto),
-  Table(Table),
-  Thread,               // TODO: Figure out how to represent this
-  Userdata              // TODO: Figure out how to represent this
+  Boolean(bool),
+  Object(GCObject),
+  //LightUserdata         // TODO: Figure out how to represent this
 }
 
-impl Value {
-  fn is_false(&self) -> bool {
-    match *self {
-      Value::Nil => true,
-      Value::Boolean(false) => true,
-      _ => false
-    }
-  }
+#[derive(PartialEq,Eq,Hash,Debug,Clone)]
+pub enum GCVariant {
+  String(InString),
+  //Closure(Closure),       // TODO
+  Table(Table),
+  Proto(Proto),
+  //Upvalue(Upvalue),       // TODO
+  Thread(LuaState),
+  //Userdata              // TODO: Figure out how to represent this
 }
 
 
